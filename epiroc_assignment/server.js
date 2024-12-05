@@ -17,33 +17,37 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-// CRUD Endpoints
-app.get("/api/items", async (req, res) => {
+// CRUD Endpoints for `expt`
+
+// Get all records
+app.get("/api/expt", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM items");
+    const result = await pool.query("SELECT * FROM expt");
     res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.get("/api/items/:id", async (req, res) => {
+// Get a single record by ID
+app.get("/api/expt/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query("SELECT * FROM items WHERE id = $1", [id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: "Item not found" });
+    const result = await pool.query("SELECT * FROM expt WHERE id = $1", [id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: "Record not found" });
     res.json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.post("/api/items", async (req, res) => {
+// Create a new record
+app.post("/api/expt", async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name } = req.body;
     const result = await pool.query(
-      "INSERT INTO items (name, description) VALUES ($1, $2) RETURNING *",
-      [name, description]
+      "INSERT INTO expt (name) VALUES ($1) RETURNING *",
+      [name]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -51,27 +55,29 @@ app.post("/api/items", async (req, res) => {
   }
 });
 
-app.put("/api/items/:id", async (req, res) => {
+// Update a record by ID
+app.put("/api/expt/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description } = req.body;
+    const { name } = req.body;
     const result = await pool.query(
-      "UPDATE items SET name = $1, description = $2 WHERE id = $3 RETURNING *",
-      [name, description, id]
+      "UPDATE expt SET name = $1 WHERE id = $2 RETURNING *",
+      [name, id]
     );
-    if (result.rows.length === 0) return res.status(404).json({ error: "Item not found" });
+    if (result.rows.length === 0) return res.status(404).json({ error: "Record not found" });
     res.json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.delete("/api/items/:id", async (req, res) => {
+// Delete a record by ID
+app.delete("/api/expt/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query("DELETE FROM items WHERE id = $1 RETURNING *", [id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: "Item not found" });
-    res.json({ message: "Item deleted successfully" });
+    const result = await pool.query("DELETE FROM expt WHERE id = $1 RETURNING *", [id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: "Record not found" });
+    res.json({ message: "Record deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
