@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useEffect } from "react";
-import { getExpts, createExpt, updateExpt, deleteExpt } from "./api/expt.js"
+import { getExpts, createExpt, updateExpt, deleteExpt } from "./api/db.js"
 
 const ExptPage = () => {
   const [expts, setExpts] = useState([]);
