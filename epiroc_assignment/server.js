@@ -140,7 +140,7 @@ const POWER_GAUGE_ZERO = 0;
 const simulateBatteryCharge = async () => {
 
         // Check if the charging status is true
-        const chargingStatus = (await pool.query(
+        const isCharging = (await pool.query(
             "SELECT is_on FROM vehicle_status WHERE indicator = 'charging'"
         )).rows[0].is_on;
 
@@ -148,7 +148,7 @@ const simulateBatteryCharge = async () => {
           "SELECT value FROM vehicle_values WHERE name = 'power_gauge'"
       )).rows[0].value;
 
-        if (chargingStatus) {
+        if (isCharging) {
 
             let isMotorRunning = (await pool.query(
                 "SELECT is_on FROM vehicle_status WHERE indicator = 'motor_status'"
@@ -164,11 +164,11 @@ const simulateBatteryCharge = async () => {
                 "SELECT value FROM vehicle_values WHERE name = 'battery_percent'"
             )).rows[0].value;
 
-            let batteryLow = (await pool.query(
+            let isBatteryLow = (await pool.query(
                 "SELECT is_on FROM vehicle_status WHERE indicator = 'battery_low'"
             )).rows[0].is_on;
 
-            if (batteryPercent >  LOW_BATTERY && batteryLow) {
+            if (batteryPercent >  LOW_BATTERY && isBatteryLow) {
                 await pool.query(
                     "UPDATE vehicle_status SET is_on = false WHERE indicator = 'battery_low'"
                 );
@@ -198,10 +198,10 @@ const simulateBatteryCharge = async () => {
             }
         }
         else {
-          const motorStatus = (await pool.query(
+          const isMotorRunning = (await pool.query(
             "SELECT is_on FROM vehicle_status WHERE indicator = 'motor_status'"
         )).rows[0].is_on;
-          if(!motorStatus){
+          if(!isMotorRunning){
             if (power_gauge != 0){
               await pool.query(
                 "UPDATE vehicle_values SET value = $1 WHERE name = 'power_gauge'",
@@ -215,9 +215,53 @@ const simulateBatteryCharge = async () => {
 
 const simulateMotorRunning = async () => {
 
+  let isMotorRunning = (await pool.query(
+    "SELECT is_on FROM vehicle_status WHERE indicator = 'motor_status'"
+    )).rows[0].is_on;
+
+  let motor_speed_setting = (await pool.query(
+    "SELECT value FROM vehicle_values WHERE name = 'motor_speed_setting'"
+    )).rows[0].value;
+    if (motor_speed_setting == 0 && isMotorRunning) {
+      isMotorRunning = false;
+      await pool.query(
+        "UPDATE vehicle_status SET is_on = false WHERE indicator = 'motor_status'"
+    );
+    }
+    else if(motor_speed_setting !=0 && !isMotorRunning) {
+      isMotorRunning = true;
+      await pool.query(
+        "UPDATE vehicle_status SET is_on = true WHERE indicator = 'motor_status'"
+    );
+    }
+      let queried_power_gauge = (await pool.query(
+        "SELECT value FROM vehicle_values WHERE name = 'power_gauge'"
+    )).rows[0].value;
+      let calculated_power_guage = motor_speed_setting * 250;
+
+      let queried_motor_rpm = (await pool.query(
+        "SELECT value FROM vehicle_values WHERE name = 'motor_rpm'"
+    )).rows[0].value;
+      let calculated_motor_rpm = motor_speed_setting * 200;
+
+        if(queried_power_gauge != calculated_power_guage){
+          await pool.query(
+            "UPDATE vehicle_values SET value = $1 WHERE name = 'power_gauge'",
+            [calculated_power_guage]
+          );
+        }
+        if(queried_motor_rpm != calculated_motor_rpm){
+          await pool.query(
+            "UPDATE vehicle_values SET value = $1 WHERE name = 'motor_rpm'",
+            [calculated_motor_rpm]
+          );
+        }
+    if(isMotorRunning) {
+      
+    }
 }
 
 
 
 setInterval(simulateBatteryCharge, LOOP_INTERVAL);
-// setInterval(simulateMotorRunning, LOOP_INTERVAL);
+setInterval(simulateMotorRunning, LOOP_INTERVAL);
