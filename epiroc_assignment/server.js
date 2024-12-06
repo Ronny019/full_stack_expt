@@ -131,7 +131,9 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
 
-const loopInterval = 2000; // 2 seconds
+const LOOP_INTERVAL = 2000; // 2 seconds
+const FULL_CHARGE = 100;
+const LOW_BATTERY = 20;
 const simulateBatteryCharge = async () => {
 
         // Check if the charging status is true
@@ -143,7 +145,18 @@ const simulateBatteryCharge = async () => {
             let batteryPercent = (await pool.query(
                 "SELECT value FROM vehicle_values WHERE name = 'battery_percent'"
             )).rows[0].value;
-            if (batteryPercent < 100) {
+
+            let batteryLow = (await pool.query(
+                "SELECT is_on FROM vehicle_status WHERE indicator = 'battery_low'"
+            )).rows[0].is_on;
+
+            if (batteryPercent >  LOW_BATTERY && batteryLow) {
+                await pool.query(
+                    "UPDATE vehicle_status SET is_on = false WHERE indicator = 'battery_low'"
+                );
+            }
+
+            if (batteryPercent < FULL_CHARGE) {
                 batteryPercent += 1;
 
             // Update the battery_percent value in the database
@@ -159,4 +172,4 @@ const simulateBatteryCharge = async () => {
         )).rows[0].value;
 
 };
-setInterval(simulateBatteryCharge, loopInterval);
+setInterval(simulateBatteryCharge, LOOP_INTERVAL);
