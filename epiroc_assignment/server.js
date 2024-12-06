@@ -23,9 +23,9 @@ const pool = new Pool({
 // CRUD Endpoints for `expt`
 
 // Get all records
-app.get("/api/expt", async (req, res) => {
+app.get("/api/vehicle_status", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM expt");
+    const result = await pool.query("SELECT * FROM vehicle_status");
     res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -33,39 +33,63 @@ app.get("/api/expt", async (req, res) => {
 });
 
 // Get a single record by ID
-app.get("/api/expt/:id", async (req, res) => {
+app.get("/api/vehicle_status/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query("SELECT * FROM expt WHERE id = $1", [id]);
+    console.log(id);
+    const result = await pool.query("SELECT * FROM vehicle_status WHERE indicator = $1", [id]);
     if (result.rows.length === 0) return res.status(404).json({ error: "Record not found" });
     res.json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
+
+app.get("/api/vehicle_values", async (req, res) => {
+    try {
+      const result = await pool.query("SELECT * FROM vehicle_values");
+      res.json(result.rows);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get a single record by ID
+  app.get("/api/vehicle_values/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await pool.query("SELECT * FROM vehicle_values WHERE name = $1", [id]);
+      if (result.rows.length === 0) return res.status(404).json({ error: "Record not found" });
+      res.json(result.rows[0]);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
 
 // Create a new record
-app.post("/api/expt", async (req, res) => {
-  try {
-    const { name } = req.body;
-    const result = await pool.query(
-      "INSERT INTO expt (name) VALUES ($1) RETURNING *",
-      [name]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// app.post("/api/vehicle_status", async (req, res) => {
+//   try {
+//     const { indicator } = req.body;
+//     const {is_on} = req.body;
+//     const result = await pool.query(
+//       "INSERT INTO vehicle_status (indicator, is_on) VALUES ($1, $2) RETURNING *",
+//       [indicator, is_on]
+//     );
+//     res.status(201).json(result.rows[0]);
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
 
 // Update a record by ID
-app.put("/api/expt/:id", async (req, res) => {
+app.put("/api/vehicle_status/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name } = req.body;
+    const { is_on } = req.body;
     const result = await pool.query(
-      "UPDATE expt SET name = $1 WHERE id = $2 RETURNING *",
-      [name, id]
+      "UPDATE vehicle_status SET is_on = $1 WHERE indicator = $2 RETURNING *",
+      [is_on, id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: "Record not found" });
     res.json(result.rows[0]);
@@ -74,20 +98,65 @@ app.put("/api/expt/:id", async (req, res) => {
   }
 });
 
+app.put("/api/vehicle_values/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { value } = req.body;
+      const result = await pool.query(
+        "UPDATE vehicle_values SET value = $1 WHERE name = $2 RETURNING *",
+        [value, id]
+      );
+      if (result.rows.length === 0) return res.status(404).json({ error: "Record not found" });
+      res.json(result.rows[0]);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
 // Delete a record by ID
-app.delete("/api/expt/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query("DELETE FROM expt WHERE id = $1 RETURNING *", [id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: "Record not found" });
-    res.json({ message: "Record deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// app.delete("/api/expt/:id", async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const result = await pool.query("DELETE FROM expt WHERE id = $1 RETURNING *", [id]);
+//     if (result.rows.length === 0) return res.status(404).json({ error: "Record not found" });
+//     res.json({ message: "Record deleted successfully" });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// });
 
 // Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
+const loopInterval = 2000; // 2 seconds
+const simulateBatteryCharge = async () => {
+
+        // Check if the charging status is true
+        const chargingStatus = await pool.query(
+            "SELECT is_on FROM vehicle_status WHERE indicator = 'charging'"
+        );
+
+        if (chargingStatus.rows[0]?.is_on) {
+            let batteryPercent = (await pool.query(
+                "SELECT value FROM vehicle_values WHERE name = 'battery_percent'"
+            )).rows[0].value;
+            if (batteryPercent < 100) {
+                batteryPercent += 1;
+
+            // Update the battery_percent value in the database
+                await pool.query(
+                    "UPDATE vehicle_values SET value = $1 WHERE name = 'battery_percent'",
+                    [batteryPercent]
+                );
+            }
+        }
+
+        let batteryPercent = (await pool.query(
+            "SELECT value FROM vehicle_values WHERE name = 'battery_percent'"
+        )).rows[0].value;
+
+};
+setInterval(simulateBatteryCharge, loopInterval);
