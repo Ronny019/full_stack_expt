@@ -243,6 +243,59 @@ const simulateMotorRunning = async () => {
         "UPDATE vehicle_status SET is_on = true WHERE indicator = 'motor_status'"
     );
     }
+
+    let gear_num = (await pool.query(
+        "SELECT value FROM vehicle_values WHERE name = 'gear_num'"
+        )).rows[0].value;
+    let gear_den = (await pool.query(
+        "SELECT value FROM vehicle_values WHERE name = 'gear_den'"
+        )).rows[0].value;
+    switch (motor_speed_setting) {
+        case 1:
+        case 2:
+        case 4:
+            if(gear_num != 1) {
+                await pool.query(
+                    "UPDATE vehicle_values SET value = 1 WHERE name = 'gear_num'"
+                  );
+            }
+            break;
+        case 3:
+            if(gear_num != 3) {
+                await pool.query(
+                    "UPDATE vehicle_values SET value = 3 WHERE name = 'gear_num'"
+                  );
+            }
+            break;
+        default:
+            break;
+        }
+        switch (motor_speed_setting) {
+        case 1:
+        case 3:
+            if (gear_den != 4) {
+                await pool.query(
+                    "UPDATE vehicle_values SET value = 4 WHERE name = 'gear_den'"
+                  );
+            }
+            break;
+        case 2:
+            if (gear_den != 2) {
+                await pool.query(
+                    "UPDATE vehicle_values SET value = 2 WHERE name = 'gear_den'"
+                  );
+            }
+            break;
+        case 4:
+            if (gear_den != 1) {
+                await pool.query(
+                    "UPDATE vehicle_values SET value = 1 WHERE name = 'gear_den'"
+                  );
+            }
+            break;
+        default:
+            break;
+    }
       let queried_power_gauge = (await pool.query(
         "SELECT value FROM vehicle_values WHERE name = 'power_gauge'"
     )).rows[0].value;
