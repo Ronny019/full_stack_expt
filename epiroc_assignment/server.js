@@ -296,6 +296,48 @@ const simulateMotorRunning = async () => {
         default:
             break;
     }
+    let battery_temp = (await pool.query(
+        "SELECT value FROM vehicle_values WHERE name = 'battery_temp'"
+        )).rows[0].value;
+    switch (motor_speed_setting) {
+        case 0:
+            if(battery_temp != 20){
+                await pool.query(
+                    "UPDATE vehicle_values SET value = 20 WHERE name = 'battery_temp'"
+                  );
+            }
+            break;
+        case 1:
+            if(battery_temp != 30){
+                await pool.query(
+                    "UPDATE vehicle_values SET value = 30 WHERE name = 'battery_temp'"
+                  );
+            }
+            break;
+        case 2:
+            if(battery_temp != 40){
+                await pool.query(
+                    "UPDATE vehicle_values SET value = 40 WHERE name = 'battery_temp'"
+                  );
+            }
+            break;
+        case 3:
+            if(battery_temp != 50){
+                await pool.query(
+                    "UPDATE vehicle_values SET value = 50 WHERE name = 'battery_temp'"
+                  );
+            }
+            break;
+        case 4:
+            if(battery_temp != 60){
+                await pool.query(
+                    "UPDATE vehicle_values SET value = 60 WHERE name = 'battery_temp'"
+                  );
+            }
+            break;
+        default:
+            break;
+    }
       let queried_power_gauge = (await pool.query(
         "SELECT value FROM vehicle_values WHERE name = 'power_gauge'"
     )).rows[0].value;
