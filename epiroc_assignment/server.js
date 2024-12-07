@@ -137,6 +137,8 @@ const LOW_BATTERY = 20;
 const BATTERY_CHARGE_PER_SEC = 3;
 const POWER_GAUGE_WHILE_CHARGING = -750;
 const POWER_GAUGE_ZERO = 0;
+const MOTOR_HIGH_SPEED = 700;
+
 const simulateBatteryCharge = async () => {
 
         // Check if the charging status is true
@@ -266,9 +268,20 @@ const simulateMotorRunning = async () => {
             [calculated_motor_rpm]
           );
         }
-    if(isMotorRunning) {
-      
-    }
+        const isMotorHighSpeed = (await pool.query(
+            "SELECT is_on FROM vehicle_status WHERE indicator = 'motor_high_speed'"
+            )).rows[0].is_on;
+        
+            if(!isMotorHighSpeed && calculated_motor_rpm > MOTOR_HIGH_SPEED) {
+                await pool.query(
+                    "UPDATE vehicle_status SET is_on = true WHERE indicator = 'motor_high_speed'"
+                );
+            }
+            else if (isMotorHighSpeed && calculated_motor_rpm <= MOTOR_HIGH_SPEED) {
+                await pool.query(
+                    "UPDATE vehicle_status SET is_on = false WHERE indicator = 'motor_high_speed'"
+                );
+            }
 }
 
 
