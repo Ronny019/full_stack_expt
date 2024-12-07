@@ -132,11 +132,12 @@ app.listen(PORT, "0.0.0.0", () => {
 });
 
 const LOOP_INTERVAL = 2000; // 2 seconds
-const FULL_CHARGE = 100;
+const BATTERY_FULL_CHARGE = 100;
 const LOW_BATTERY = 20;
 const BATTERY_CHARGE_PER_SEC = 3;
 const POWER_GAUGE_WHILE_CHARGING = -750;
 const POWER_GAUGE_ZERO = 0;
+const BATTERY_ZERO_CHARGE = 0;
 const MOTOR_HIGH_SPEED = 700;
 
 const simulateBatteryCharge = async () => {
@@ -178,10 +179,10 @@ const simulateBatteryCharge = async () => {
                     "UPDATE vehicle_status SET is_on = false WHERE indicator = 'battery_low'"
                 );
             }
-            if (batteryPercent < FULL_CHARGE) {
+            if (batteryPercent < BATTERY_FULL_CHARGE) {
                 batteryPercent += BATTERY_CHARGE_PER_SEC;
-                if(batteryPercent > FULL_CHARGE) {
-                  batteryPercent = FULL_CHARGE;
+                if(batteryPercent > BATTERY_FULL_CHARGE) {
+                  batteryPercent = BATTERY_FULL_CHARGE;
                 }
 
                 await pool.query(
@@ -282,6 +283,42 @@ const simulateMotorRunning = async () => {
                     "UPDATE vehicle_status SET is_on = false WHERE indicator = 'motor_high_speed'"
                 );
             }
+        if (isMotorRunning) {
+            let batteryPercent = (await pool.query(
+                "SELECT value FROM vehicle_values WHERE name = 'battery_percent'"
+            )).rows[0].value;
+
+            let isBatteryLow = (await pool.query(
+                "SELECT is_on FROM vehicle_status WHERE indicator = 'battery_low'"
+            )).rows[0].is_on;
+
+            if (batteryPercent <  LOW_BATTERY && !isBatteryLow) {
+                await pool.query(
+                    "UPDATE vehicle_status SET is_on = true WHERE indicator = 'battery_low'"
+                );
+            }
+            calculated_charge_drop = motor_speed_setting;
+            if (batteryPercent > BATTERY_ZERO_CHARGE) {
+                batteryPercent -= calculated_charge_drop;
+                if(batteryPercent < BATTERY_ZERO_CHARGE) {
+                batteryPercent = BATTERY_ZERO_CHARGE;
+                }
+
+                await pool.query(
+                    "UPDATE vehicle_values SET value = $1 WHERE name = 'battery_percent'",
+                    [batteryPercent]
+                );
+            }
+            else {
+                await pool.query(
+                    "UPDATE vehicle_status SET is_on = false WHERE indicator = 'motor_status'"
+                );
+                await pool.query(
+                    "UPDATE vehicle_values SET value = 0 WHERE name = 'motor_speed_setting'"
+                );
+            }
+        }
+        
 }
 
 
